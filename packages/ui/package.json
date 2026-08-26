@@ -1,0 +1,13 @@
+{
+  "name": "@pfs/ui",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "dependencies": {
+    "react": "^19.2.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

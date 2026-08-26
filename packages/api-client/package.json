@@ -1,0 +1,11 @@
+{
+  "name": "@pfs/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "TypeScript client generated from apps/api openapi.json — do not hand-edit generated files.",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "generate": "echo 'Wire up openapi-typescript once apps/api exposes openapi.json' && exit 1"
+  }
+}

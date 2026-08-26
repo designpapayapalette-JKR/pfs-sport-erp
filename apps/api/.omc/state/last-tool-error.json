@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"rm -rf \\\"/Users/jaikumarrastogi/Documents/PFS Sports/PFS ERP/apps/api/.venv\\\"; command -v pyenv brew python3.11 python3.12 python3.13 2>&1; ls /opt/homebrew/bin/python3* /usr/local/bin/pyt...",
+  "error": "Exit code 1\n/opt/homebrew/bin/brew\n/Users/jaikumarrastogi/.local/bin/python3.12\n/opt/homebrew/bin/python3.13\n(eval):1: no matches found: /usr/local/bin/python3*",
+  "timestamp": "2026-08-26T09:42:25.461Z",
+  "retry_count": 1
+}
