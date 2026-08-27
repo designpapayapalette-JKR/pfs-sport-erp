@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ERPProvider } from "@/context/erp-context";
-import { DemoHUD } from "@/components/demo/demo-hud";
 import { SearchModal } from "@/components/layout/search-modal";
 import "./globals.css";
 
@@ -92,7 +91,6 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#FAFAF8] text-neutral-900 font-sans">
         <ERPProvider>
           {children}
-          <DemoHUD />
           <SearchModal />
         </ERPProvider>
       </body>
