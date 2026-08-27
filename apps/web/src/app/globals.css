@@ -1,26 +1,174 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F6F8FA;
+  --foreground: #0F172A;
+  --primary: #040C1A;
+  --primary-hover: #09162C;
+  --primary-light: #EFF6FF;
+  --secondary: #E0A925;
+  --secondary-hover: #C4920E;
+  --success: #006442;
+  --success-light: #ECFDF5;
+  --warning: #F36E21;
+  --warning-light: #FFF7ED;
+  --error: #E11D48;
+  --error-light: #FFF1F2;
+  --surface: #FFFFFF;
+  --surface-hover: #F1F5F9;
+  --surface-border: #E2E8F0;
+  --gold: #E0A925;
+  --gold-light: #FDF7E7;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-error: var(--error);
+  --color-error-light: var(--error-light);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-border: var(--surface-border);
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum", "ss01", "ss03";
+}
+
+* {
+  border-color: var(--surface-border);
+}
+
+/* ========================================================================= */
+/* TYPOGRAPHY SYSTEM & FONT UTILITIES                                        */
+/* ========================================================================= */
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.heading-hero {
+  font-size: clamp(2rem, 4vw + 1rem, 3.75rem);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.heading-section {
+  font-size: clamp(1.25rem, 2vw + 0.5rem, 1.75rem);
+  font-weight: 850;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.heading-card {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.label-kicker {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.text-mono-stat {
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.03em;
+}
+
+.text-body-subtle {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #64748B;
+}
+
+/* Glassmorphism & Modern Card Shadows */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+}
+
+.glass-panel-dark {
+  background: rgba(7, 29, 61, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+}
+
+.card-hover-effect {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -4px rgba(10, 42, 87, 0.07), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
+  border-color: rgba(10, 42, 87, 0.25);
+}
+
+/* Subtle dot grid pattern for technical court feel */
+.bg-grid-pattern {
+  background-image: radial-gradient(rgba(10, 42, 87, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.bg-grid-pattern-dark {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Glow effects */
+.glow-gold {
+  box-shadow: 0 0 25px -3px rgba(185, 144, 60, 0.35);
+}
+
+.glow-orange {
+  box-shadow: 0 0 25px -3px rgba(243, 110, 33, 0.35);
+}
+
+/* Modern clean scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
 }
