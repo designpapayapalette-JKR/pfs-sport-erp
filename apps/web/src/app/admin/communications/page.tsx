@@ -123,47 +123,69 @@ export default function AdminCommunicationsPage() {
       t.phone.includes(chatSearch)
   );
 
+  // Browser Speech Synthesis Engine for realistic AI Voice
+  const speakVoiceLine = (text: string, isAI: boolean = true) => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = isAI ? 1.05 : 0.98;
+        utterance.pitch = isAI ? 1.08 : 0.92;
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        // Fallback gracefully
+      }
+    }
+  };
+
   // Handle Simulated Live Outbound Call
   const handleStartSimulatedCall = () => {
     setIsCallingActive(true);
     setLiveCallTranscript([
-      { speaker: "AI Voice Agent", text: `Dialing ${callLeadPhone}... Connecting satellite trunk.` },
+      { speaker: "AI Voice Agent", text: `Connecting satellite trunk to ${callLeadPhone}...` },
     ]);
+    speakVoiceLine(`Connecting call to ${callLeadName}.`);
 
     setTimeout(() => {
+      const msg = `Hello ${callLeadName}! This is Antigravity AI Voice Assistant from PFS Sport Infrastructure. Following up on your ${callCampaignType} request for ${callLeadOrg}.`;
       setLiveCallTranscript((prev) => [
         ...prev,
         {
           speaker: "AI Voice Agent",
-          text: `Hello ${callLeadName}! This is Antigravity AI Voice Assistant from PFS Sport Infrastructure. Following up on your ${callCampaignType} request for ${callLeadOrg}.`,
+          text: msg,
         },
       ]);
+      speakVoiceLine(msg, true);
     }, 1200);
 
     setTimeout(() => {
+      const customerMsg = "Hi! Yes, we have existing outdoor courts that need complete resurfacing with ITF Class 3 acrylic cushion before our championship in October.";
       setLiveCallTranscript((prev) => [
         ...prev,
         {
           speaker: callLeadName,
-          text: "Hi! Yes, we have existing outdoor courts that need complete resurfacing with ITF Class 3 acrylic cushion before our championship in October.",
+          text: customerMsg,
         },
       ]);
-    }, 2800);
+      speakVoiceLine(customerMsg, false);
+    }, 4000);
 
     setTimeout(() => {
+      const closingMsg = "Excellent. Our PFS Pro Tour 8-Layer system meets ITF Class 3 pace standards. I have scheduled our regional lead Siddharth Verma for Thursday 11 AM and dispatched the technical TDS to your WhatsApp.";
       setLiveCallTranscript((prev) => [
         ...prev,
         {
           speaker: "AI Voice Agent",
-          text: "Excellent. Our PFS Pro Tour 8-Layer system meets ITF Class 3 pace standards. I have immediately scheduled our regional lead Siddharth Verma for Thursday 11 AM and dispatched the TDS to your WhatsApp.",
+          text: closingMsg,
         },
       ]);
-    }, 4500);
+      speakVoiceLine(closingMsg, true);
+    }, 7500);
 
     setTimeout(() => {
       triggerAICall(callLeadName, callLeadPhone, callCampaignType, callLeadOrg);
       setIsCallingActive(false);
-    }, 6000);
+    }, 11000);
   };
 
   const handleSendMessage = () => {
@@ -917,12 +939,30 @@ export default function AdminCommunicationsPage() {
                   {/* Live Simulated Call Box */}
                   <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3 shadow-md">
                     <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-                      <span className="font-mono text-xs font-bold text-amber-300 flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                         <Radio className={`h-3.5 w-3.5 ${isCallingActive ? "animate-pulse text-red-400" : "text-slate-400"}`} />
-                        {isCallingActive ? "CALL IN PROGRESS (LIVE SPEECH ENGINE)" : "AI CALL SIMULATION READY"}
-                      </span>
+                        <span className="font-mono text-xs font-bold text-amber-300">
+                          {isCallingActive ? "CALL IN PROGRESS (VOICE SYNTHESIS LIVE)" : "AI CALL SIMULATION READY"}
+                        </span>
+                      </div>
+
+                      {/* Animated Audio Equalizer Waveform */}
                       {isCallingActive && (
-                        <span className="text-[10px] font-mono text-emerald-400 animate-pulse">420ms Latency</span>
+                        <div className="flex items-center gap-1">
+                          {[14, 26, 18, 30, 22, 28, 16, 24].map((height, i) => (
+                            <motion.span
+                              key={i}
+                              animate={{ height: [6, height, 8, height * 0.7, 6] }}
+                              transition={{
+                                repeat: Infinity,
+                                duration: 0.6 + (i % 3) * 0.2,
+                                ease: "easeInOut",
+                              }}
+                              className="w-1 bg-[#E0A925] rounded-full"
+                              style={{ height: 6 }}
+                            />
+                          ))}
+                        </div>
                       )}
                     </div>
 
