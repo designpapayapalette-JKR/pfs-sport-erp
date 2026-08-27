@@ -50,13 +50,8 @@ export function DocumentViewerModal({
   grossAmount = 1450000,
   shipmentId = "SHP-2026-044",
 }: DocumentViewerModalProps) {
-  const [activeTab, setActiveTab] = React.useState<DocumentType>(documentType);
-
-  React.useEffect(() => {
-    if (documentType) {
-      setActiveTab(documentType);
-    }
-  }, [documentType]);
+  const [selectedTab, setSelectedTab] = React.useState<DocumentType | null>(null);
+  const activeTab = selectedTab ?? documentType;
 
   const handlePrint = () => {
     window.print();
@@ -115,7 +110,7 @@ export function DocumentViewerModal({
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as DocumentType)}
+                onClick={() => setSelectedTab(tab.id as DocumentType)}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap ${
                   isActive
                     ? "bg-white text-slate-900 shadow-xs border border-slate-200"
