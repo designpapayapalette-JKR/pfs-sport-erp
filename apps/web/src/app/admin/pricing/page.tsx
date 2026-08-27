@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { AdminLayout } from "@/components/layout/dealer-layout";
 import { PageHeader } from "@/components/layout/page-header";
 import { useERP } from "@/context/erp-context";
@@ -174,19 +175,15 @@ export default function AdminPricingPage() {
                       ₹{prod.silverPrice}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs font-bold text-primary"
-                        onClick={(e) => {
-                          const btn = e.currentTarget;
-                          btn.textContent = "Coming Soon";
-                          btn.disabled = true;
-                          setTimeout(() => { btn.innerHTML = '<svg class="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit'; btn.disabled = false; }, 1500);
-                        }}
-                      >
-                        <Edit className="h-3.5 w-3.5 mr-1" /> Edit
-                      </Button>
+                      <Link href="/admin/products">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs font-bold text-primary hover:bg-slate-100"
+                        >
+                          <Edit className="h-3.5 w-3.5 mr-1" /> Edit SKU
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}

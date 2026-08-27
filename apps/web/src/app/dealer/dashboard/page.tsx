@@ -45,7 +45,13 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const { currentUser, orders, products } = useERP();
+  const { currentUser, orders, products, dealers } = useERP();
+
+  const currentDealerProfile = dealers.find(
+    (d) => d.code === currentUser.dealerId || d.name === currentUser.dealerName
+  ) || dealers[0];
+
+  const creditLimitLakhs = ((currentDealerProfile?.creditLimit || 2500000) / 100000).toFixed(1);
 
   const totalOrderValue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
   const activeOrdersCount = orders.filter((o) => ["submitted", "confirmed", "processing", "packed", "dispatched"].includes(o.status)).length;
@@ -78,7 +84,7 @@ export default function DashboardPage() {
                 Welcome back, {currentUser.name}
               </h1>
               <p className="text-xs text-white/70 font-mono">
-                {currentUser.dealerName || "Apex Sports Infrastructure Pvt Ltd"} • Region: {currentUser.territory || "Maharashtra & Goa"} • Credit: ₹25.0L
+                {currentUser.dealerName || "Apex Sports Infrastructure Pvt Ltd"} • Region: {currentUser.territory || "Maharashtra & Goa"} • Credit: ₹{creditLimitLakhs}L
               </p>
             </div>
           </div>
