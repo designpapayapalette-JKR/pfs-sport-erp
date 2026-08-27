@@ -309,7 +309,12 @@ export default function LeadsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => alert("Leads CSV Import Template downloaded.")}
+              onClick={(e) => {
+                const btn = e.currentTarget;
+                btn.textContent = "✓ Template Ready";
+                btn.disabled = true;
+                setTimeout(() => { btn.innerHTML = '<svg class="mr-1.5 h-3.5 w-3.5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 017 7h1"/><path d="M15 7h1a5 5 0 010 10h-1"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Import CSV'; btn.disabled = false; }, 1500);
+              }}
               className="rounded-xl border-slate-200 text-xs font-bold text-slate-700"
             >
               <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
@@ -902,6 +907,104 @@ export default function LeadsPage() {
                     >
                       <Mail className="mr-1.5 h-4 w-4" /> Draft Proposal
                     </Button>
+                  </div>
+
+                  {/* ============================================================ */}
+                  {/* LEAD DETAILS CARD — Contact, Project & Timeline Info         */}
+                  {/* ============================================================ */}
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+                    <h4 className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5 text-slate-500" />
+                      Lead Details
+                    </h4>
+
+                    {/* Contact Row */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <a
+                        href={`mailto:${activeLead.email}`}
+                        className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 hover:bg-blue-50 hover:border-blue-200 group transition-colors min-w-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Mail className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">Email</span>
+                          <span className="text-[10px] font-semibold text-slate-800 truncate block group-hover:text-blue-700">
+                            {activeLead.email}
+                          </span>
+                        </div>
+                      </a>
+
+                      <a
+                        href={`tel:${activeLead.phone}`}
+                        className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 hover:bg-emerald-50 hover:border-emerald-200 group transition-colors min-w-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Phone className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">Phone</span>
+                          <span className="text-[10px] font-semibold text-slate-800 truncate block group-hover:text-emerald-700">
+                            {activeLead.phone}
+                          </span>
+                        </div>
+                      </a>
+                    </div>
+
+                    {/* Project Type & Timeline Row */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 min-w-0">
+                        <Building2 className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">Project Type</span>
+                          <span className="text-[10px] font-semibold text-slate-800 truncate block">
+                            {activeLead.projectType}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 min-w-0">
+                        <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">Timeline</span>
+                          <span className="text-[10px] font-semibold text-slate-800 truncate block">
+                            {activeLead.timeline}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dates Row */}
+                    <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
+                      <div className="p-2 bg-slate-50 rounded-xl border border-slate-200/80 text-center">
+                        <span className="text-[9px] font-sans font-bold text-slate-400 uppercase block mb-0.5">Created</span>
+                        <span className="font-bold text-slate-800 block">
+                          {new Date(activeLead.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                        </span>
+                      </div>
+                      <div className="p-2 bg-slate-50 rounded-xl border border-slate-200/80 text-center">
+                        <span className="text-[9px] font-sans font-bold text-slate-400 uppercase block mb-0.5">Last Follow-up</span>
+                        <span className="font-bold text-slate-800 block">
+                          {new Date(activeLead.lastFollowUp).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                        </span>
+                      </div>
+                      <div className={`p-2 rounded-xl border text-center ${activeLead.slaBreach ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-200/80"}`}>
+                        <span className={`text-[9px] font-sans font-bold uppercase block mb-0.5 ${activeLead.slaBreach ? "text-amber-600" : "text-slate-400"}`}>
+                          Next Due
+                        </span>
+                        <span className={`font-black block truncate ${activeLead.slaBreach ? "text-amber-700" : "text-slate-800"}`}>
+                          {activeLead.nextFollowUpDue === "Today"
+                            ? "Today"
+                            : new Date(activeLead.nextFollowUpDue).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* SLA Breach Alert */}
+                    {activeLead.slaBreach && (
+                      <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-800">
+                        <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                        SLA Breach — Follow-up overdue. Immediate action required.
+                      </div>
+                    )}
                   </div>
 
                   {/* Pipeline Stage Selector Pill Matrix */}

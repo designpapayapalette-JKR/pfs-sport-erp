@@ -147,14 +147,14 @@ const mockDealerProfiles: DealerProfile[] = [
 ];
 
 export default function DealersAdminPage() {
-  const [dealersList, setDealersList] = React.useState<DealerProfile[]>(mockDealerProfiles);
+  const { dealers, approveDealerKYC, updateDealerCredit } = useERP();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTier, setSelectedTier] = React.useState<string>("All");
   const [selectedDealer, setSelectedDealer] = React.useState<DealerProfile | null>(null);
 
   const tiers = ["All", "Platinum", "Gold", "Silver", "Registered"];
 
-  const filteredDealers = dealersList.filter((d) => {
+  const filteredDealers = dealers.filter((d) => {
     const matchesTier = selectedTier === "All" || d.tier === selectedTier;
     const matchesSearch =
       d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -165,11 +165,7 @@ export default function DealersAdminPage() {
   });
 
   const handleApproveKYC = (dealerId: string) => {
-    setDealersList((prev) =>
-      prev.map((d) =>
-        d.id === dealerId ? { ...d, status: "Approved", tier: "Silver", creditLimit: 500000 } : d
-      )
-    );
+    approveDealerKYC(dealerId, 2500000);
     setSelectedDealer(null);
   };
 
@@ -468,7 +464,11 @@ export default function DealersAdminPage() {
                     <Button
                       variant="default"
                       size="default"
-                      onClick={() => alert(`Updated tier parameters for ${selectedDealer.name}`)}
+                      onClick={() => {
+                        const btn = document.activeElement as HTMLButtonElement | null;
+                        if (btn) { btn.disabled = true; btn.textContent = "✓ Settings Saved!"; }
+                        setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = "Save Commercial Settings"; } }, 2000);
+                      }}
                       className="rounded-xl text-xs font-bold bg-[#040C1A] text-white h-10 px-5"
                     >
                       Save Commercial Settings

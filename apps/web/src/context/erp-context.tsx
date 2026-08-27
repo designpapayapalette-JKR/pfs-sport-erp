@@ -44,6 +44,95 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface DealerProfile {
+  id: string;
+  code: string;
+  name: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  city: string;
+  state: string;
+  tier: "Platinum" | "Gold" | "Silver" | "Registered";
+  status: "Approved" | "Pending Review" | "Suspended";
+  creditLimit: number;
+  creditUsed: number;
+  ordersCount: number;
+  joinedDate: string;
+  gstin: string;
+}
+
+export const initialDealerProfiles: DealerProfile[] = [
+  {
+    id: "dlr-1",
+    code: "DLR-MUM-01",
+    name: "Apex Sports Infrastructure Pvt Ltd",
+    ownerName: "Anand Singhania",
+    email: "anand@apexsports.in",
+    phone: "+91 98201 44521",
+    city: "Mumbai",
+    state: "Maharashtra",
+    tier: "Platinum",
+    status: "Approved",
+    creditLimit: 2500000,
+    creditUsed: 840000,
+    ordersCount: 14,
+    joinedDate: "12 Jan 2026",
+    gstin: "27AABCA1234F1Z9",
+  },
+  {
+    id: "dlr-2",
+    code: "DLR-BLR-04",
+    name: "Premier Court Builders",
+    ownerName: "Suresh Reddy",
+    email: "suresh@premiercourts.in",
+    phone: "+91 98450 11928",
+    city: "Bengaluru",
+    state: "Karnataka",
+    tier: "Gold",
+    status: "Approved",
+    creditLimit: 1500000,
+    creditUsed: 620000,
+    ordersCount: 9,
+    joinedDate: "04 Feb 2026",
+    gstin: "29AABCU9912D1Z4",
+  },
+  {
+    id: "dlr-3",
+    code: "DLR-DEL-08",
+    name: "ProTrack Sports Surfaces",
+    ownerName: "Gurpreet Singh",
+    email: "gurpreet@protracksurfaces.com",
+    phone: "+91 99100 88219",
+    city: "New Delhi",
+    state: "Delhi NCR",
+    tier: "Silver",
+    status: "Approved",
+    creditLimit: 800000,
+    creditUsed: 150000,
+    ordersCount: 4,
+    joinedDate: "19 Feb 2026",
+    gstin: "07AAACK4812P1ZL",
+  },
+  {
+    id: "dlr-4",
+    code: "DLR-HYD-02",
+    name: "Deccan Sports Infra & Turnkey",
+    ownerName: "Venkat Rao",
+    email: "venkat@deccansports.co.in",
+    phone: "+91 97000 33412",
+    city: "Hyderabad",
+    state: "Telangana",
+    tier: "Registered",
+    status: "Pending Review",
+    creditLimit: 0,
+    creditUsed: 0,
+    ordersCount: 0,
+    joinedDate: "24 Feb 2026",
+    gstin: "36AABCD7719K1ZY",
+  },
+];
+
 export interface SavedEstimate {
   id: string;
   title: string;
@@ -116,6 +205,12 @@ interface ERPContextType {
   isAdmin: boolean;
   isDealer: boolean;
   products: ProductItem[];
+  adjustProductStock: (productId: string, quantityDelta: number, warehouse: string, reason: string, batchLot?: string) => void;
+  addNewProduct: (product: Omit<ProductItem, "id">) => ProductItem;
+  updateProduct: (productId: string, updates: Partial<ProductItem>) => void;
+  dealers: DealerProfile[];
+  approveDealerKYC: (dealerId: string, creditLimit?: number) => void;
+  updateDealerCredit: (dealerId: string, creditLimit: number, tier: DealerProfile["tier"]) => void;
   orders: OrderRecord[];
   shipments: ShipmentRecord[];
   leads: CRMLead[];
@@ -135,6 +230,9 @@ interface ERPContextType {
   cartSubtotal: number;
   createOrderFromCart: (paymentTerms: OrderRecord["paymentTerms"], destinationCity: string, projectRef: string) => OrderRecord;
   updateOrderStatus: (orderId: string, newStatus: OrderRecord["status"]) => void;
+  recordInvoicePayment: (invoiceNumber: string, amount: number, paymentMode: string, referenceNumber: string) => void;
+  convertEstimateToCart: (estimate: { sport: string; areaSqFt: number; systemTier: string; courtCount: number; accessories: string[] }) => number;
+  convertVisualizerToCart: (sport: string, designName: string, zoneColors: Record<string, string>, areaSqFt?: number) => void;
   dispatchOrderConsignment: (payload: DispatchConsignmentPayload) => ShipmentRecord;
   toggleAutomationRule: (ruleId: string) => void;
   updateLeadStage: (leadId: string, stage: CRMLead["stage"]) => void;
@@ -203,7 +301,8 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
   const [currentUserKey, setCurrentUserKey] = React.useState<string>("dealer_platinum");
   const currentUser = mockUsers[currentUserKey] || mockUsers.dealer_platinum;
 
-  const [products] = React.useState<ProductItem[]>(mockProducts);
+  const [products, setProducts] = React.useState<ProductItem[]>(mockProducts);
+  const [dealers, setDealers] = React.useState<DealerProfile[]>(initialDealerProfiles);
   const [orders, setOrders] = React.useState<OrderRecord[]>(mockOrders);
   const [shipments, setShipments] = React.useState<ShipmentRecord[]>(mockShipments);
   const [leads, setLeads] = React.useState<CRMLead[]>(mockLeads);
@@ -288,6 +387,202 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
 
   const unreadNotificationCount = notifications.filter((n) => !n.read).length;
 
+  // Real-time Stock Adjustment with Immutable Audit Logging
+  const adjustProductStock = (
+    productId: string,
+    quantityDelta: number,
+    warehouse: string,
+    reason: string,
+    batchLot: string = "BATCH-2026-LIVE"
+  ) => {
+    let targetProductName = "Product SKU";
+    let oldStock = 0;
+    let newStock = 0;
+
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id === productId || p.sku === productId) {
+          targetProductName = p.name;
+          oldStock = p.stockOnHands;
+          newStock = Math.max(0, p.stockOnHands + quantityDelta);
+          return {
+            ...p,
+            stockOnHands: newStock,
+          };
+        }
+        return p;
+      })
+    );
+
+    // Register immutable Audit Event
+    const newAuditEvent: AuditEvent = {
+      id: `aud-${Date.now()}`,
+      actorName: currentUser.name,
+      actorEmail: currentUser.email,
+      role: currentUser.roleLabel,
+      module: "Inventory",
+      action: "STOCK_ADJUSTMENT",
+      targetEntity: "Product Stock",
+      entityId: productId,
+      ipAddress: "103.21.124.8",
+      timestamp: new Date().toISOString(),
+      details: `${quantityDelta > 0 ? "Added" : "Deducted"} ${Math.abs(quantityDelta).toLocaleString()} units at ${warehouse} (${reason}, Lot: ${batchLot}). Balance updated: ${oldStock.toLocaleString()} → ${newStock.toLocaleString()}.`,
+    };
+    setAuditEvents((prev) => [newAuditEvent, ...prev]);
+
+    // Dispatch notification if stock drops low
+    if (newStock <= 5000 && quantityDelta < 0) {
+      setNotifications((prev) => [
+        {
+          id: `notif-${Date.now()}`,
+          title: "Low Inventory Warning",
+          message: `${targetProductName} is below safety buffer at ${warehouse} (${newStock.toLocaleString()} units remaining).`,
+          type: "inventory",
+          timestamp: "Just now",
+          read: false,
+          link: "/admin/inventory",
+        },
+        ...prev,
+      ]);
+    }
+  };
+
+  // Add New Product SKU into CMS & Storefront
+  const addNewProduct = (productData: Omit<ProductItem, "id">): ProductItem => {
+    const newProduct: ProductItem = {
+      ...productData,
+      id: `prod-${Date.now()}`,
+    };
+
+    setProducts((prev) => [newProduct, ...prev]);
+
+    // Audit Event
+    setAuditEvents((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        actorName: currentUser.name,
+        actorEmail: currentUser.email,
+        role: currentUser.roleLabel,
+        module: "Inventory",
+        action: "PRODUCT_SKU_CREATED",
+        targetEntity: "Product SKU",
+        entityId: newProduct.sku,
+        ipAddress: "103.21.124.8",
+        timestamp: new Date().toISOString(),
+        details: `Created new catalog SKU: ${newProduct.name} [${newProduct.sku}] - MRP ₹${newProduct.mrpInr}/sq ft.`,
+      },
+      ...prev,
+    ]);
+
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        title: "New Product SKU Published",
+        message: `${newProduct.name} (${newProduct.sku}) is now active in dealer catalogue & storefront.`,
+        type: "inventory",
+        timestamp: "Just now",
+        read: false,
+        link: "/admin/products",
+      },
+      ...prev,
+    ]);
+
+    return newProduct;
+  };
+
+  // Update Product SKU
+  const updateProduct = (productId: string, updates: Partial<ProductItem>) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, ...updates } : p))
+    );
+
+    setAuditEvents((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        actorName: currentUser.name,
+        actorEmail: currentUser.email,
+        role: currentUser.roleLabel,
+        module: "Inventory",
+        action: "PRODUCT_SKU_UPDATED",
+        targetEntity: "Product SKU",
+        entityId: productId,
+        ipAddress: "103.21.124.8",
+        timestamp: new Date().toISOString(),
+        details: `Updated parameters for SKU ${productId}.`,
+      },
+      ...prev,
+    ]);
+  };
+
+  // Approve Dealer KYC & Grant Credit Facility
+  const approveDealerKYC = (dealerId: string, creditLimit: number = 2500000) => {
+    setDealers((prev) =>
+      prev.map((d) =>
+        d.id === dealerId || d.code === dealerId
+          ? { ...d, status: "Approved", creditLimit }
+          : d
+      )
+    );
+
+    setAuditEvents((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        actorName: currentUser.name,
+        actorEmail: currentUser.email,
+        role: currentUser.roleLabel,
+        module: "Dealers",
+        action: "DEALER_KYC_APPROVED",
+        targetEntity: "Dealer Account",
+        entityId: dealerId,
+        ipAddress: "103.21.124.8",
+        timestamp: new Date().toISOString(),
+        details: `Approved statutory KYC & authorized ₹${(creditLimit / 100000).toFixed(1)} Lakhs credit facility for ${dealerId}.`,
+      },
+      ...prev,
+    ]);
+
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        title: "Dealer KYC Verified & Approved",
+        message: `Account ${dealerId} has been verified with ₹${(creditLimit / 100000).toFixed(1)}L credit headroom.`,
+        type: "system",
+        timestamp: "Just now",
+        read: false,
+        link: "/admin/dealers",
+      },
+      ...prev,
+    ]);
+  };
+
+  // Update Dealer Credit Terms
+  const updateDealerCredit = (dealerId: string, creditLimit: number, tier: DealerProfile["tier"]) => {
+    setDealers((prev) =>
+      prev.map((d) =>
+        d.id === dealerId || d.code === dealerId
+          ? { ...d, creditLimit, tier }
+          : d
+      )
+    );
+
+    setAuditEvents((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        actorName: currentUser.name,
+        actorEmail: currentUser.email,
+        role: currentUser.roleLabel,
+        module: "Dealers",
+        action: "DEALER_CREDIT_TERMS_UPDATED",
+        targetEntity: "Dealer Account",
+        entityId: dealerId,
+        ipAddress: "103.21.124.8",
+        timestamp: new Date().toISOString(),
+        details: `Updated commercial terms for ${dealerId}: Tier ${tier}, Credit Limit ₹${creditLimit.toLocaleString("en-IN")}.`,
+      },
+      ...prev,
+    ]);
+  };
+
   const addToCart = (product: ProductItem, quantity: number = 1) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
@@ -337,6 +632,7 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     return sum + unitPrice * item.quantity;
   }, 0);
 
+  // Full Synchronized E-Commerce Purchase Order Creation
   const createOrderFromCart = (
     paymentTerms: OrderRecord["paymentTerms"],
     destinationCity: string,
@@ -374,21 +670,64 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
       gstAmount,
       totalAmount,
       paymentTerms,
-      paymentStatus: "Unpaid",
-      paidAmount: 0,
+      paymentStatus: paymentTerms === "100% Advance" ? "Paid" : "Unpaid",
+      paidAmount: paymentTerms === "100% Advance" ? totalAmount : 0,
       destinationCity: destinationCity || "Site Location",
       projectReference: projectRef || "Custom Court Project",
     };
 
+    // 1. Add order to Orders ledger
     setOrders((prev) => [newOrder, ...prev]);
-    clearCart();
 
-    // Add notification
+    // 2. Automatically reserve & adjust stock on products in inventory
+    setProducts((prev) =>
+      prev.map((p) => {
+        const matchingCartItem = cart.find((c) => c.product.id === p.id);
+        if (matchingCartItem) {
+          return {
+            ...p,
+            stockOnHands: Math.max(0, p.stockOnHands - matchingCartItem.quantity),
+          };
+        }
+        return p;
+      })
+    );
+
+    // 3. Update dealer's credit usage if purchased on Net Credit
+    if (paymentTerms.toLowerCase().includes("credit")) {
+      setDealers((prev) =>
+        prev.map((d) =>
+          d.code === newOrder.dealerId || d.name === newOrder.dealerName
+            ? { ...d, creditUsed: d.creditUsed + totalAmount, ordersCount: d.ordersCount + 1 }
+            : d
+        )
+      );
+    }
+
+    // 4. Register immutable Audit Event
+    setAuditEvents((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        actorName: currentUser.name,
+        actorEmail: currentUser.email,
+        role: currentUser.roleLabel,
+        module: "Orders",
+        action: "COMMERCIAL_ORDER_INGESTED",
+        targetEntity: "Purchase Order",
+        entityId: orderNum,
+        ipAddress: "103.21.124.8",
+        timestamp: new Date().toISOString(),
+        details: `E-Commerce order placed by ${newOrder.dealerName} for ${newOrder.projectReference} in ${newOrder.destinationCity}. Total ₹${totalAmount.toLocaleString("en-IN")} (Taxable ₹${subtotal.toLocaleString("en-IN")}, GST ₹${gstAmount.toLocaleString("en-IN")}). Materials reserved in ERP.`,
+      },
+      ...prev,
+    ]);
+
+    // 5. Trigger synced notification
     setNotifications((prev) => [
       {
         id: `notif-${Date.now()}`,
-        title: "Order Request Submitted",
-        message: `Order #${orderNum} submitted for review (₹${totalAmount.toLocaleString("en-IN")}).`,
+        title: "Purchase Order Ingested",
+        message: `Order #${orderNum} placed for ${newOrder.projectReference} (₹${totalAmount.toLocaleString("en-IN")}).`,
         type: "order",
         timestamp: "Just now",
         read: false,
@@ -397,13 +736,196 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
       ...prev,
     ]);
 
+    clearCart();
     return newOrder;
   };
 
+  // Synchronized Order Status Updates with Audit & Alerts
   const updateOrderStatus = (orderId: string, newStatus: OrderRecord["status"]) => {
+    let affectedOrder: OrderRecord | undefined;
+
     setOrders((prev) =>
-      prev.map((ord) => (ord.id === orderId ? { ...ord, status: newStatus } : ord))
+      prev.map((ord) => {
+        if (ord.id === orderId || ord.orderNumber === orderId) {
+          affectedOrder = { ...ord, status: newStatus };
+          return affectedOrder;
+        }
+        return ord;
+      })
     );
+
+    if (affectedOrder) {
+      const statusActionMap: Record<string, string> = {
+        confirmed: "ORDER_CONFIRMED_STOCK_RESERVED",
+        processing: "ORDER_PROCESSING_BATCH_ALLOCATED",
+        packed: "ORDER_PACKED_AWAITING_CARRIER",
+        dispatched: "ORDER_DISPATCHED_IN_TRANSIT",
+        delivered: "ORDER_DELIVERED_POD_VERIFIED",
+        cancelled: "ORDER_CANCELLED_STOCK_RELEASED",
+      };
+
+      setAuditEvents((prev) => [
+        {
+          id: `aud-${Date.now()}`,
+          actorName: currentUser.name,
+          actorEmail: currentUser.email,
+          role: currentUser.roleLabel,
+          module: "Orders",
+          action: statusActionMap[newStatus] || "ORDER_STATUS_UPDATED",
+          targetEntity: "Purchase Order",
+          entityId: affectedOrder?.orderNumber || orderId,
+          ipAddress: "103.21.124.8",
+          timestamp: new Date().toISOString(),
+          details: `Order #${affectedOrder?.orderNumber} status transitioned to "${newStatus.toUpperCase()}".`,
+        },
+        ...prev,
+      ]);
+
+      setNotifications((prev) => [
+        {
+          id: `notif-${Date.now()}`,
+          title: `Order #${affectedOrder?.orderNumber} ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
+          message: `Consignment for ${affectedOrder?.dealerName} in ${affectedOrder?.destinationCity} is now ${newStatus}.`,
+          type: "order",
+          timestamp: "Just now",
+          read: false,
+          link: "/admin/orders",
+        },
+        ...prev,
+      ]);
+    }
+  };
+
+  // Record Payment for Invoices & Sync Balance
+  const recordInvoicePayment = (
+    invoiceNumber: string,
+    amount: number,
+    paymentMode: string,
+    referenceNumber: string
+  ) => {
+    setOrders((prev) =>
+      prev.map((ord) => {
+        const orderInvNumber = `PFS-INV-2026-${ord.orderNumber.replace(/[^0-9]/g, "")}`;
+        if (invoiceNumber.includes(ord.orderNumber) || orderInvNumber === invoiceNumber || ord.id === invoiceNumber) {
+          const newPaidAmount = (ord.paidAmount || 0) + amount;
+          const newStatus = newPaidAmount >= ord.totalAmount ? "Paid" : "Partially Paid";
+          return {
+            ...ord,
+            paidAmount: newPaidAmount,
+            paymentStatus: newStatus,
+          };
+        }
+        return ord;
+      })
+    );
+
+    // Deduct credit used if dealer has credit
+    setDealers((prev) =>
+      prev.map((d) => ({
+        ...d,
+        creditUsed: Math.max(0, d.creditUsed - amount),
+      }))
+    );
+
+    setAuditEvents((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        actorName: currentUser.name,
+        actorEmail: currentUser.email,
+        role: currentUser.roleLabel,
+        module: "Orders",
+        action: "PAYMENT_RECEIPT_RECORDED",
+        targetEntity: "Invoice Payment",
+        entityId: invoiceNumber,
+        ipAddress: "103.21.124.8",
+        timestamp: new Date().toISOString(),
+        details: `Recorded payment of ₹${amount.toLocaleString("en-IN")} via ${paymentMode} (Ref: ${referenceNumber}) for ${invoiceNumber}.`,
+      },
+      ...prev,
+    ]);
+
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        title: "Payment Receipt Confirmed",
+        message: `₹${amount.toLocaleString("en-IN")} payment recorded for ${invoiceNumber} via ${paymentMode}.`,
+        type: "order",
+        timestamp: "Just now",
+        read: false,
+        link: "/admin/invoices",
+      },
+      ...prev,
+    ]);
+  };
+
+  // Turnkey Estimator to Cart Converter
+  const convertEstimateToCart = (estimate: {
+    sport: string;
+    areaSqFt: number;
+    systemTier: string;
+    courtCount: number;
+    accessories: string[];
+  }): number => {
+    // 1. Find matching Surface System
+    let matchingProduct = products.find((p) =>
+      p.category === "Surface Systems" || p.name.toLowerCase().includes("acrylic")
+    ) || products[0];
+
+    if (estimate.systemTier.toLowerCase().includes("mod-tile") || estimate.systemTier.toLowerCase().includes("modular")) {
+      matchingProduct = products.find((p) => p.category === "Modular Tiles") || matchingProduct;
+    } else if (estimate.systemTier.toLowerCase().includes("padel") || estimate.systemTier.toLowerCase().includes("turf")) {
+      matchingProduct = products.find((p) => p.category === "Turf") || matchingProduct;
+    } else if (estimate.systemTier.toLowerCase().includes("pu")) {
+      matchingProduct = products.find((p) => p.category === "PU Flooring") || matchingProduct;
+    }
+
+    // Add surface system
+    addToCart(matchingProduct, estimate.areaSqFt);
+
+    // 2. Add accessories if present
+    const accessoryProduct = products.find((p) => p.category === "Accessories");
+    if (accessoryProduct && estimate.courtCount > 0) {
+      addToCart(accessoryProduct, estimate.courtCount);
+    }
+
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        title: "Turnkey Package Added to Cart",
+        message: `${estimate.courtCount}x ${estimate.sport.toUpperCase()} Court package (${estimate.areaSqFt.toLocaleString()} sq ft) converted to active purchase order.`,
+        type: "order",
+        timestamp: "Just now",
+        read: false,
+        link: "/checkout",
+      },
+      ...prev,
+    ]);
+
+    return estimate.areaSqFt;
+  };
+
+  // Color Visualizer to Cart Converter
+  const convertVisualizerToCart = (
+    sport: string,
+    designName: string,
+    zoneColors: Record<string, string>,
+    areaSqFt: number = 1800
+  ) => {
+    const surfaceProduct = products.find((p) => p.category === "Surface Systems") || products[0];
+    addToCart(surfaceProduct, areaSqFt);
+
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        title: "Custom Colorway Packaged in Cart",
+        message: `Court design "${designName}" (${sport.toUpperCase()}) added to cart with custom color specifications.`,
+        type: "order",
+        timestamp: "Just now",
+        read: false,
+        link: "/checkout",
+      },
+      ...prev,
+    ]);
   };
 
   const dispatchOrderConsignment = (payload: DispatchConsignmentPayload): ShipmentRecord => {
@@ -826,6 +1348,12 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         isDealer,
         products,
+        adjustProductStock,
+        addNewProduct,
+        updateProduct,
+        dealers,
+        approveDealerKYC,
+        updateDealerCredit,
         orders,
         shipments,
         leads,
@@ -845,6 +1373,9 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
         cartSubtotal,
         createOrderFromCart,
         updateOrderStatus,
+        recordInvoicePayment,
+        convertEstimateToCart,
+        convertVisualizerToCart,
         dispatchOrderConsignment,
         toggleAutomationRule,
         updateLeadStage,

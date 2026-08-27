@@ -582,7 +582,6 @@ export default function AdminShipmentDetailPage() {
                 variant="accent"
                 size="sm"
                 onClick={() => {
-                  alert(`Downloading official countersigned POD for ${activeShipment.shipmentNumber}`);
                   setIsPodModalOpen(false);
                 }}
                 className="rounded-xl text-xs font-bold bg-[#F36E21] hover:bg-[#D95D16] text-white"
@@ -632,7 +631,6 @@ export default function AdminShipmentDetailPage() {
                 variant="accent"
                 size="sm"
                 onClick={() => {
-                  alert(`Downloading ${activeDocTitle}`);
                   setIsDocModalOpen(false);
                 }}
                 className="rounded-xl text-xs font-bold bg-[#F36E21] hover:bg-[#D95D16] text-white"

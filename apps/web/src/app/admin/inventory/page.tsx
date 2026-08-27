@@ -6,10 +6,6 @@ import { useERP } from "@/context/erp-context";
 import { ProductItem } from "@/lib/mock-data";
 import {
   Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   Button,
   Badge,
   Input,
@@ -19,13 +15,16 @@ import {
   TableHead,
   TableBody,
   TableCell,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@pfs/ui";
+import {
+  PageTransition,
+  StaggerContainer,
+  StaggerItem,
+  MotionCard,
+  LivePulseDot,
+  AnimatedNumber,
+} from "@/components/motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Layers,
   Plus,
@@ -37,53 +36,77 @@ import {
   FileSpreadsheet,
   Check,
   X,
+  Package,
+  Boxes,
+  TrendingUp,
+  ShieldCheck,
+  RefreshCw,
+  Warehouse,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminInventoryPage() {
-  const { products } = useERP();
+  const { products, adjustProductStock } = useERP();
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedCategory, setSelectedCategory] = React.useState("All");
+  const [selectedWarehouse, setSelectedWarehouse] = React.useState("All Hubs");
   const [isAdjustModalOpen, setIsAdjustModalOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<ProductItem | null>(null);
-  const [adjustQty, setAdjustQty] = React.useState(1000);
+  const [adjustQty, setAdjustQty] = React.useState<number>(1000);
+  const [adjustWarehouse, setAdjustWarehouse] = React.useState("Bhiwandi Central Super Hub (MH)");
   const [adjustReason, setAdjustReason] = React.useState("Factory Stock Receipt (Chennai Plant)");
   const [batchLot, setBatchLot] = React.useState("BATCH-2026-AC-09");
   const [adjustSuccess, setAdjustSuccess] = React.useState(false);
 
-  const filteredProducts = products.filter(
-    (p) =>
+  const categories = ["All", "Surface Systems", "Modular Tiles", "Turf", "PU Flooring", "Accessories"];
+
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      p.sku.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || p.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const totalOnHand = products.reduce((sum, p) => sum + p.stockOnHands, 0);
+  const totalReserved = products.reduce((sum, p) => sum + p.stockReserved, 0);
+  const lowStockCount = products.filter((p) => p.stockOnHands - p.stockReserved <= p.reorderLevel).length;
 
   const handleOpenAdjust = (prod: ProductItem) => {
     setSelectedProduct(prod);
+    setAdjustQty(1000);
     setIsAdjustModalOpen(true);
     setAdjustSuccess(false);
   };
 
   const handleConfirmAdjust = () => {
+    if (!selectedProduct) return;
+    adjustProductStock(selectedProduct.id, adjustQty, adjustWarehouse, adjustReason, batchLot);
     setAdjustSuccess(true);
     setTimeout(() => {
       setIsAdjustModalOpen(false);
       setAdjustSuccess(false);
-    }, 1500);
+    }, 1200);
   };
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <PageTransition className="space-y-5">
+        {/* ===================================================================== */}
+        {/* 1. PAGE HEADER                                                        */}
+        {/* ===================================================================== */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
                 Inventory Ledgers & Multi-Warehouse Stock
               </h1>
-              <Badge variant="success">ACID Transactions Enforced</Badge>
+              <Badge variant="success" className="rounded-full text-[10px] font-extrabold flex items-center gap-1.5 px-2.5 py-0.5">
+                <LivePulseDot color="emerald" size="sm" />
+                ACID Transactions Enforced
+              </Badge>
             </div>
-            <p className="text-sm text-neutral-500 mt-1">
-              Live balances across Bhiwandi Super Hub, Okhla Central, and Peenya Facility with batch/lot tracking.
+            <p className="text-xs text-slate-500 mt-0.5">
+              Live balances across Bhiwandi Super Hub, Okhla Central, and Peenya Facility with real-time storefront synchronization.
             </p>
           </div>
 
@@ -92,89 +115,194 @@ export default function AdminInventoryPage() {
               variant="accent"
               size="sm"
               onClick={() => handleOpenAdjust(products[0])}
+              className="rounded-xl bg-[#F36E21] hover:bg-[#D95D16] text-white text-xs font-extrabold shadow-xs"
             >
-              <Plus className="mr-1.5 h-4 w-4" />
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Record Stock Adjustment
             </Button>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="flex justify-end">
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+        {/* ===================================================================== */}
+        {/* 2. TELEMETRY KPI STRIP                                                */}
+        {/* ===================================================================== */}
+        <StaggerContainer className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            {
+              label: "Physical On-Hand Volume",
+              value: totalOnHand,
+              suffix: " sq ft/units",
+              icon: Boxes,
+              iconBg: "bg-blue-50 text-blue-600",
+              sub: "Across all 3 Hubs",
+            },
+            {
+              label: "Active Stock Reservations",
+              value: totalReserved,
+              suffix: " sq ft/units",
+              icon: Layers,
+              iconBg: "bg-amber-50 text-amber-700",
+              sub: "Locked for open POs",
+            },
+            {
+              label: "Net Available Stock",
+              value: totalOnHand - totalReserved,
+              suffix: " sq ft/units",
+              icon: CheckCircle2,
+              iconBg: "bg-emerald-50 text-emerald-700",
+              sub: "Free for immediate dispatch",
+            },
+            {
+              label: "Low Stock Watchlist",
+              value: lowStockCount,
+              suffix: " SKUs",
+              icon: AlertTriangle,
+              iconBg: lowStockCount > 0 ? "bg-rose-50 text-rose-600" : "bg-slate-50 text-slate-600",
+              sub: lowStockCount > 0 ? "Below reorder threshold" : "All SKUs buffered",
+            },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <StaggerItem key={i}>
+                <MotionCard className="p-3.5 bg-white border border-slate-200/90 rounded-2xl shadow-xs flex items-center justify-between cursor-default">
+                  <div>
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                      {kpi.label}
+                    </span>
+                    <span className="text-xl font-black text-slate-900 font-mono mt-0.5 block">
+                      <AnimatedNumber value={kpi.value} />
+                      <span className="text-xs font-normal text-slate-500">{kpi.suffix}</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium block mt-0.5">{kpi.sub}</span>
+                  </div>
+                  <div className={`h-9 w-9 rounded-xl ${kpi.iconBg} flex items-center justify-center shrink-0`}>
+                    <Icon className="h-4.5 w-4.5" />
+                  </div>
+                </MotionCard>
+              </StaggerItem>
+            );
+          })}
+        </StaggerContainer>
+
+        {/* ===================================================================== */}
+        {/* 3. FILTERS & SEARCH TOOLBAR                                           */}
+        {/* ===================================================================== */}
+        <div className="flex flex-col md:flex-row gap-2.5 justify-between items-start md:items-center bg-white p-3 rounded-2xl border border-slate-200/90 shadow-xs">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold transition-all ${
+                  selectedCategory === cat
+                    ? "bg-[#040C1A] text-white shadow-xs"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by SKU or system..."
-              className="pl-9 text-xs"
+              placeholder="Search by SKU or system…"
+              className="h-8 pl-8.5 text-xs rounded-xl"
             />
           </div>
         </div>
 
-        {/* Stock Ledger Table */}
-        <Card className="bg-white border border-surfaceBorder shadow-xs overflow-hidden" padding="none">
-          <Table>
-            <TableHeader className="bg-neutral-50/80">
-              <TableRow>
-                <TableHead className="font-bold text-neutral-800">SKU & Product Name</TableHead>
-                <TableHead className="font-bold text-neutral-800">Category</TableHead>
-                <TableHead className="font-bold text-neutral-800 text-right">Physical On-Hand</TableHead>
-                <TableHead className="font-bold text-neutral-800 text-right">Active Reservations</TableHead>
-                <TableHead className="font-bold text-neutral-800 text-right">Available</TableHead>
-                <TableHead className="font-bold text-neutral-800 text-right">Reorder Threshold</TableHead>
-                <TableHead className="font-bold text-neutral-800 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((p) => {
-                const avail = p.stockOnHands - p.stockReserved;
-                const isLow = avail <= p.reorderLevel;
-                const unit = p.category === "Accessories" ? "units" : "sq ft";
-
-                return (
-                  <TableRow key={p.id} className="hover:bg-neutral-50/60">
-                    <TableCell>
-                      <p className="font-bold text-xs text-neutral-900">{p.name}</p>
-                      <p className="text-[10px] font-mono text-neutral-500">{p.sku}</p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" size="sm">
-                        {p.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs text-neutral-800">
-                      {p.stockOnHands.toLocaleString("en-IN")} {unit}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs text-neutral-500">
-                      {p.stockReserved.toLocaleString("en-IN")} {unit}
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-xs text-neutral-900">
-                      <span className={isLow ? "text-amber-700" : "text-emerald-700"}>
-                        {avail.toLocaleString("en-IN")} {unit}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs text-neutral-500">
-                      {p.reorderLevel.toLocaleString("en-IN")} {unit}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs"
-                        onClick={() => handleOpenAdjust(p)}
-                      >
-                        Adjust / Receipt
-                      </Button>
+        {/* ===================================================================== */}
+        {/* 4. STOCK LEDGER TABLE                                                 */}
+        {/* ===================================================================== */}
+        <Card className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden" padding="none">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50/90">
+                <TableRow>
+                  <TableHead className="font-bold text-slate-800 text-xs">SKU &amp; Product System</TableHead>
+                  <TableHead className="font-bold text-slate-800 text-xs">Category</TableHead>
+                  <TableHead className="font-bold text-slate-800 text-xs text-right">On-Hand</TableHead>
+                  <TableHead className="font-bold text-slate-800 text-xs text-right">Reserved</TableHead>
+                  <TableHead className="font-bold text-slate-800 text-xs text-right">Net Available</TableHead>
+                  <TableHead className="font-bold text-slate-800 text-xs text-right">Reorder Threshold</TableHead>
+                  <TableHead className="font-bold text-slate-800 text-xs text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-2 text-slate-400">
+                        <Package className="h-8 w-8 text-slate-200" />
+                        <span className="text-sm font-semibold">No inventory SKUs match your filter</span>
+                        <span className="text-xs">Try searching for a different system code</span>
+                      </div>
                     </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredProducts.map((p) => {
+                    const avail = p.stockOnHands - p.stockReserved;
+                    const isLow = avail <= p.reorderLevel;
+                    const unit = p.category === "Accessories" ? "units" : "sq ft";
+
+                    return (
+                      <TableRow key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-black text-xs shrink-0">
+                              <Boxes className="h-4 w-4 text-slate-600" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-xs text-slate-900">{p.name}</p>
+                              <p className="text-[10px] font-mono text-slate-400">{p.sku} · {p.certification}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" size="sm" className="rounded-full text-[10px]">
+                            {p.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-slate-800">
+                          {p.stockOnHands.toLocaleString("en-IN")} {unit}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-slate-400">
+                          {p.stockReserved.toLocaleString("en-IN")} {unit}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-black text-xs">
+                          <span className={isLow ? "text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200" : "text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"}>
+                            {avail.toLocaleString("en-IN")} {unit}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-slate-500">
+                          {p.reorderLevel.toLocaleString("en-IN")} {unit}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs font-bold rounded-lg border-slate-200 text-slate-700 hover:bg-slate-100"
+                            onClick={() => handleOpenAdjust(p)}
+                          >
+                            Adjust / Receipt
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
 
-        {/* Enterprise Stock Adjustment & Movement Left-Side Slide-Over Sheet */}
+        {/* ===================================================================== */}
+        {/* 5. STOCK ADJUSTMENT SLIDE-OVER SHEET                                  */}
+        {/* ===================================================================== */}
         <AnimatePresence>
           {isAdjustModalOpen && selectedProduct && (
             <div className="fixed inset-0 z-[100] flex justify-start">
@@ -250,9 +378,8 @@ export default function AdminInventoryPage() {
                   </div>
                 </div>
 
-                {/* Scrollable Body */}
+                {/* Scrollable Form Body */}
                 <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs">
-                  {/* Section 1: Super Hub & Quantity */}
                   <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-3">
                     <span className="font-extrabold text-slate-800 block text-xs flex items-center gap-1.5">
                       <Building2 className="h-3.5 w-3.5 text-slate-500" />
@@ -264,7 +391,11 @@ export default function AdminInventoryPage() {
                         <label className="font-extrabold text-slate-700 block mb-1">
                           Fulfillment Super Hub *
                         </label>
-                        <select className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#F36E21]/30">
+                        <select
+                          value={adjustWarehouse}
+                          onChange={(e) => setAdjustWarehouse(e.target.value)}
+                          className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#F36E21]/30"
+                        >
                           <option>Bhiwandi Central Super Hub (MH)</option>
                           <option>Okhla Industrial Super Hub (Delhi NCR)</option>
                           <option>Peenya Logistics Facility (Bengaluru)</option>
@@ -319,6 +450,11 @@ export default function AdminInventoryPage() {
                       />
                     </div>
                   </div>
+
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-2 text-[10px] text-blue-900">
+                    <ShieldCheck className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                    <span>Every stock change is logged to the Immutable Audit Trail with cryptographic timestamp and actor ID.</span>
+                  </div>
                 </div>
 
                 {/* Sticky Action Footer */}
@@ -348,7 +484,7 @@ export default function AdminInventoryPage() {
             </div>
           )}
         </AnimatePresence>
-      </div>
+      </PageTransition>
     </AdminLayout>
   );
 }

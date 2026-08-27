@@ -42,12 +42,15 @@ import {
   Sliders,
   Eye,
   Box,
+  ShoppingCart,
+  Check,
 } from "lucide-react";
 
 type ZoneId = "playingArea" | "kitchen" | "perimeter" | "lines";
 
 export default function VisualiserPage() {
-  const { saveCourtDesign } = useERP();
+  const { saveCourtDesign, convertVisualizerToCart } = useERP();
+  const [isAddedToCart, setIsAddedToCart] = React.useState(false);
 
   // Sport selection
   const [selectedSport, setSelectedSport] = React.useState<string>("pickleball");
@@ -93,6 +96,12 @@ export default function VisualiserPage() {
     saveCourtDesign(designName, selectedSport, zoneColors);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2500);
+  };
+
+  const handleOrderColorway = () => {
+    convertVisualizerToCart(selectedSport, designName, zoneColors, activeSpec.defaultAreaSqFt);
+    setIsAddedToCart(true);
+    setTimeout(() => setIsAddedToCart(false), 3000);
   };
 
   return (
@@ -508,17 +517,35 @@ export default function VisualiserPage() {
                 </div>
               </div>
 
-              {/* Action Bridge: Convert to Cost Estimate */}
+              {/* Action Bridge: Order Materials or Estimate Cost */}
               <div className="pt-3 border-t border-slate-100 space-y-2">
+                <Button
+                  variant="accent"
+                  onClick={handleOrderColorway}
+                  className="w-full h-11 text-xs font-black bg-[#F36E21] hover:bg-[#D95D16] text-white shadow-md shadow-orange-600/25 rounded-xl"
+                >
+                  {isAddedToCart ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Materials Packaged in Cart!
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      Package Materials in this Colorway
+                    </>
+                  )}
+                </Button>
+
                 <Link
                   href={`/dealer/estimator?sport=${selectedSport}`}
                   className="block"
                 >
                   <Button
-                    variant="accent"
-                    className="w-full h-11 text-xs font-bold shadow-md shadow-orange-600/20 rounded-xl"
+                    variant="outline"
+                    className="w-full h-10 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl"
                   >
-                    <span>Estimate Cost with these Specs</span>
+                    <span>Calculate Full Turnkey Cost</span>
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>

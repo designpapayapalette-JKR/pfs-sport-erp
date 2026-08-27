@@ -71,7 +71,7 @@ function StarRating({ stars, count }: { stars: number; count: number }) {
 }
 
 export default function ShopPage() {
-  const { addToCart, cartCount, cartSubtotal } = useERP();
+  const { products, addToCart, cartCount, cartSubtotal } = useERP();
 
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState("All");
@@ -85,12 +85,12 @@ export default function ShopPage() {
   const [projectBudgetInput, setProjectBudgetInput] = React.useState<number>(850000);
 
   const categoriesList = [
-    { id: "All", label: "All Systems", count: mockProducts.length, icon: Grid },
-    { id: "Surface Systems", label: "Acrylic Surfaces", count: mockProducts.filter((p) => p.category === "Surface Systems").length, icon: Trophy },
-    { id: "Modular Tiles", label: "Modular Tiles", count: mockProducts.filter((p) => p.category === "Modular Tiles").length, icon: Grid },
-    { id: "Turf", label: "Padel Turf", count: mockProducts.filter((p) => p.category === "Turf").length, icon: Sparkles },
-    { id: "PU Flooring", label: "PU Flooring", count: mockProducts.filter((p) => p.category === "PU Flooring").length, icon: Activity },
-    { id: "Accessories", label: "Accessories", count: mockProducts.filter((p) => p.category === "Accessories").length, icon: Box },
+    { id: "All", label: "All Systems", count: products.length, icon: Grid },
+    { id: "Surface Systems", label: "Acrylic Surfaces", count: products.filter((p) => p.category === "Surface Systems").length, icon: Trophy },
+    { id: "Modular Tiles", label: "Modular Tiles", count: products.filter((p) => p.category === "Modular Tiles").length, icon: Grid },
+    { id: "Turf", label: "Padel Turf", count: products.filter((p) => p.category === "Turf").length, icon: Sparkles },
+    { id: "PU Flooring", label: "PU Flooring", count: products.filter((p) => p.category === "PU Flooring").length, icon: Activity },
+    { id: "Accessories", label: "Accessories", count: products.filter((p) => p.category === "Accessories").length, icon: Box },
   ];
 
   const inspiredLooks = [
@@ -100,12 +100,12 @@ export default function ShopPage() {
     { name: "Sapphire Arena Elite", sport: "Padel", playing: pfsColorPalette[5], kitchen: pfsColorPalette[4], perimeter: pfsColorPalette[1] },
   ];
 
-  const filteredProducts = mockProducts.filter((prod) => {
+  const filteredProducts = products.filter((prod) => {
     const matchesCat = selectedCategory === "All" || prod.category === selectedCategory;
     const matchesSearch =
       prod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       prod.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prod.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (prod.systemTier || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCat && matchesSearch;
   });
 

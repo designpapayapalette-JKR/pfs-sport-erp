@@ -1149,7 +1149,6 @@ export default function AdminCommunicationsPage() {
                     variant="accent"
                     size="sm"
                     onClick={() => {
-                      alert("Transcript exported to CRM Lead Dossier.");
                       setSelectedCall(null);
                     }}
                     className="rounded-xl text-xs font-bold bg-[#F36E21] text-white"
@@ -1210,7 +1209,6 @@ export default function AdminCommunicationsPage() {
                     variant="accent"
                     size="sm"
                     onClick={() => {
-                      alert(`Resending ${selectedEmail.subject}`);
                       setSelectedEmail(null);
                     }}
                     className="rounded-xl text-xs font-bold bg-[#F36E21] text-white"

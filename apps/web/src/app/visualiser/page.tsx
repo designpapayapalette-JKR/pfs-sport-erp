@@ -47,7 +47,7 @@ import {
 type ZoneId = "playingArea" | "kitchen" | "perimeter" | "lines";
 
 export default function StorefrontVisualiserPage() {
-  const { addToCart } = useERP();
+  const { convertVisualizerToCart } = useERP();
 
   const [selectedSport, setSelectedSport] = React.useState<string>("pickleball");
   const [viewAngle, setViewAngle] = React.useState<"top" | "perspective">("perspective");
@@ -88,7 +88,7 @@ export default function StorefrontVisualiserPage() {
   };
 
   const handleAddBundleToCart = () => {
-    addToCart(mockProducts[0], activeSpec.defaultAreaSqFt);
+    convertVisualizerToCart(selectedSport, designName, zoneColors, activeSpec.defaultAreaSqFt);
     setIsAddedToCart(true);
     setTimeout(() => setIsAddedToCart(false), 3000);
   };

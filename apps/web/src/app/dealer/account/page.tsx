@@ -28,7 +28,15 @@ import {
 } from "lucide-react";
 
 export default function AccountPage() {
-  const { currentUser } = useERP();
+  const { currentUser, dealers } = useERP();
+  const currentDealerProfile = dealers.find(
+    (d) => d.code === currentUser.dealerId || d.name === currentUser.dealerName
+  ) || dealers[0];
+
+  const creditLimit = currentDealerProfile?.creditLimit ?? 2500000;
+  const creditUsed = currentDealerProfile?.creditUsed ?? 840000;
+  const availableCredit = Math.max(0, creditLimit - creditUsed);
+  const usedPercent = creditLimit > 0 ? Math.min(100, Math.round((creditUsed / creditLimit) * 100)) : 0;
 
   return (
     <DealerLayout>
@@ -156,21 +164,21 @@ export default function AccountPage() {
 
               <div>
                 <p className="text-xs text-white/70">Sanctioned Credit Limit</p>
-                <p className="text-3xl font-black text-white font-mono mt-1">₹25,00,000</p>
+                <p className="text-3xl font-black text-white font-mono mt-1">₹{creditLimit.toLocaleString("en-IN")}</p>
                 <p className="text-xs text-white/60 mt-0.5">Payment Cycle: 30 Days Net from Dispatch</p>
               </div>
 
               <div className="space-y-1.5 pt-2 border-t border-white/10 text-xs">
                 <div className="flex justify-between text-white/80">
                   <span>Utilized Balance:</span>
-                  <span className="font-mono text-amber-300 font-bold">₹8,40,000 (33.6%)</span>
+                  <span className="font-mono text-amber-300 font-bold">₹{creditUsed.toLocaleString("en-IN")} ({usedPercent}%)</span>
                 </div>
                 <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
-                  <div className="bg-[#006442] h-full rounded-full w-[33.6%]" />
+                  <div className="bg-[#006442] h-full rounded-full transition-all duration-500" style={{ width: `${usedPercent}%` }} />
                 </div>
                 <div className="flex justify-between text-[11px] text-white/60">
-                  <span>Available Credit: ₹16,60,000</span>
-                  <span>Overdue: ₹0.00</span>
+                  <span>Available Credit: ₹{availableCredit.toLocaleString("en-IN")}</span>
+                  <span>Status: {currentDealerProfile?.status || "Approved"}</span>
                 </div>
               </div>
 

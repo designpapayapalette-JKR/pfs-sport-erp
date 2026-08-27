@@ -32,6 +32,8 @@ import {
   TrendingUp,
   ArrowRight,
   RotateCcw,
+  ShoppingCart,
+  Check,
 } from "lucide-react";
 import { PageTransition, AnimatedNumber } from "@/components/motion";
 import { motion } from "framer-motion";
@@ -40,7 +42,8 @@ function EstimatorContent() {
   const searchParams = useSearchParams();
   const initialSport = searchParams.get("sport") || "pickleball";
 
-  const { currentUser, saveEstimate, savedEstimates, openAIModal } = useERP();
+  const { currentUser, saveEstimate, savedEstimates, openAIModal, convertEstimateToCart } = useERP();
+  const [isConvertedToCart, setIsConvertedToCart] = React.useState(false);
 
   // Form State
   const [selectedSport, setSelectedSport] = React.useState<string>(initialSport);
@@ -216,6 +219,18 @@ function EstimatorContent() {
     });
   };
 
+  const handleConvertToCart = () => {
+    convertEstimateToCart({
+      sport: selectedSport,
+      areaSqFt: customArea,
+      systemTier,
+      courtCount,
+      accessories: calculations.accessoriesList,
+    });
+    setIsConvertedToCart(true);
+    setTimeout(() => setIsConvertedToCart(false), 3000);
+  };
+
   return (
     <DealerLayout>
       <PageTransition className="space-y-6">
@@ -239,14 +254,31 @@ function EstimatorContent() {
               Explain with Kimi AI
             </Button>
 
-            <Button variant="accent" size="sm" onClick={handleSaveEstimate} disabled={saveSuccess}>
+            <Button variant="outline" size="sm" onClick={handleSaveEstimate} disabled={saveSuccess}>
               {saveSuccess ? (
                 <>
-                  <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-300" /> Saved!
+                  <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-600" /> Saved!
                 </>
               ) : (
                 <>
                   <Save className="mr-1.5 h-4 w-4" /> Save Estimate
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={handleConvertToCart}
+              className="bg-[#F36E21] hover:bg-[#D95D16] text-white font-extrabold shadow-sm"
+            >
+              {isConvertedToCart ? (
+                <>
+                  <Check className="mr-1.5 h-4 w-4" /> Added to Cart!
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="mr-1.5 h-4 w-4" /> Convert to Cart
                 </>
               )}
             </Button>
@@ -597,20 +629,38 @@ function EstimatorContent() {
                 <div className="space-y-2 pt-2">
                   <Button
                     variant="accent"
-                    className="w-full h-11 text-sm font-semibold"
-                    onClick={handleExplainWithAI}
+                    className="w-full h-12 text-xs font-black bg-[#F36E21] hover:bg-[#D95D16] text-white shadow-lg shadow-orange-600/25 rounded-2xl"
+                    onClick={handleConvertToCart}
                   >
-                    <Bot className="mr-2 h-4 w-4" />
-                    Explain Breakdown with Kimi AI
+                    {isConvertedToCart ? (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Turnkey Package Added to Cart!
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        Convert Package to Purchase Order &amp; Cart
+                      </>
+                    )}
                   </Button>
 
                   <Button
                     variant="gold"
-                    className="w-full h-11 text-sm font-semibold"
+                    className="w-full h-11 text-xs font-bold"
                     onClick={handleSaveEstimate}
                   >
                     <FileCheck className="mr-2 h-4 w-4" />
-                    Convert to Official Draft Quote
+                    Save as Official Draft Quote
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="w-full h-10 text-xs font-semibold text-slate-200 border-white/20 hover:bg-white/10"
+                    onClick={handleExplainWithAI}
+                  >
+                    <Bot className="mr-2 h-4 w-4 text-primary" />
+                    Explain Breakdown with Kimi AI
                   </Button>
                 </div>
               </CardContent>
@@ -626,7 +676,7 @@ function EstimatorContent() {
                   {savedEstimates.map((est) => (
                     <div
                       key={est.id}
-                      className="p-3 rounded-lg border border-surfaceBorder bg-neutral-50/50 hover:bg-neutral-100 transition-colors flex items-center justify-between"
+                      className="p-3 rounded-xl border border-surfaceBorder bg-neutral-50/50 hover:bg-neutral-100 transition-colors flex items-center justify-between"
                     >
                       <div>
                         <p className="text-xs font-bold text-neutral-900">{est.title}</p>
@@ -634,13 +684,32 @@ function EstimatorContent() {
                           {est.courtCount} courts • {est.areaSqFt} sq ft • {est.createdAt}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-mono font-bold text-[#0A2A57]">
-                          ₹{(est.grandTotalLow / 100000).toFixed(1)}L - ₹{(est.grandTotalHigh / 100000).toFixed(1)}L
-                        </p>
-                        <Badge variant="outline" size="sm">
-                          {est.rateCardVersion}
-                        </Badge>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <p className="text-xs font-mono font-bold text-[#0A2A57]">
+                            ₹{(est.grandTotalLow / 100000).toFixed(1)}L - ₹{(est.grandTotalHigh / 100000).toFixed(1)}L
+                          </p>
+                          <Badge variant="outline" size="sm" className="text-[10px]">
+                            {est.rateCardVersion}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="accent"
+                          size="icon-sm"
+                          onClick={() => {
+                            convertEstimateToCart({
+                              sport: est.sport,
+                              areaSqFt: est.areaSqFt,
+                              systemTier: est.systemTier,
+                              courtCount: est.courtCount,
+                              accessories: est.accessories,
+                            });
+                          }}
+                          className="h-8 w-8 rounded-xl bg-[#F36E21] hover:bg-[#D95D16] text-white"
+                          title="Convert to Cart"
+                        >
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
                   ))}

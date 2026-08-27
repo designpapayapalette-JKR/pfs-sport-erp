@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 
 export default function StorefrontEstimatorPage() {
-  const { addToCart } = useERP();
+  const { convertEstimateToCart } = useERP();
 
   // Form State
   const [selectedSport, setSelectedSport] = React.useState<string>("pickleball");
@@ -104,7 +104,19 @@ export default function StorefrontEstimatorPage() {
   }, [selectedSport, courtCount, systemTier, baseCondition, includeNetPosts, includeLights, includeFencing, includeLineMarking, totalArea]);
 
   const handleAddEstimateToCart = () => {
-    addToCart(mockProducts[0], totalArea);
+    const accessoriesList: string[] = [];
+    if (includeNetPosts) accessoriesList.push("Tournament Net Post Set");
+    if (includeLights) accessoriesList.push("LED Court Floodlights");
+    if (includeFencing) accessoriesList.push("10ft Galvanized Chainlink Fencing");
+    if (includeLineMarking) accessoriesList.push("Precision PU Line Markings");
+
+    convertEstimateToCart({
+      sport: selectedSport,
+      areaSqFt: totalArea,
+      systemTier,
+      courtCount,
+      accessories: accessoriesList,
+    });
     setIsAddedToCart(true);
     setTimeout(() => setIsAddedToCart(false), 3000);
   };

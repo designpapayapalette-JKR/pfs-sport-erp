@@ -40,6 +40,17 @@ import {
 
 export default function AdminPricingPage() {
   const { products } = useERP();
+  const [publishLoading, setPublishLoading] = React.useState(false);
+  const [publishDone, setPublishDone] = React.useState(false);
+
+  const handlePublish = () => {
+    setPublishLoading(true);
+    setTimeout(() => {
+      setPublishLoading(false);
+      setPublishDone(true);
+      setTimeout(() => setPublishDone(false), 2500);
+    }, 1000);
+  };
 
   return (
     <AdminLayout>
@@ -55,11 +66,17 @@ export default function AdminPricingPage() {
           <Button
             variant="accent"
             size="sm"
-            onClick={() => alert("Rate card revision published as v1.5.")}
+            onClick={handlePublish}
+            disabled={publishLoading || publishDone}
             className="rounded-xl shadow-xs"
           >
-            <Calculator className="mr-1.5 h-4 w-4" />
-            Publish Rate Card v1.5
+            {publishDone ? (
+              <><CheckCircle2 className="mr-1.5 h-4 w-4" />Rate Card v1.5 Published!</>
+            ) : publishLoading ? (
+              <><Clock className="mr-1.5 h-4 w-4 animate-spin" />Publishing…</>
+            ) : (
+              <><Calculator className="mr-1.5 h-4 w-4" />Publish Rate Card v1.5</>
+            )}
           </Button>
         </PageHeader>
 
@@ -161,7 +178,12 @@ export default function AdminPricingPage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 text-xs font-bold text-primary"
-                        onClick={() => alert(`Opening rate card modifier for ${prod.name}`)}
+                        onClick={(e) => {
+                          const btn = e.currentTarget;
+                          btn.textContent = "Coming Soon";
+                          btn.disabled = true;
+                          setTimeout(() => { btn.innerHTML = '<svg class="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit'; btn.disabled = false; }, 1500);
+                        }}
                       >
                         <Edit className="h-3.5 w-3.5 mr-1" /> Edit
                       </Button>

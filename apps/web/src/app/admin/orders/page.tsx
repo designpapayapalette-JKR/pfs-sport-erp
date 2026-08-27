@@ -41,6 +41,7 @@ import {
   AlertTriangle,
   MapPin,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DispatchConsignmentModal } from "@/components/dispatch/dispatch-consignment-modal";
@@ -51,6 +52,7 @@ export default function AdminOrdersPage() {
   const [selectedStatus, setSelectedStatus] = React.useState<string>("All");
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRecord | null>(null);
   const [isDispatchModalOpen, setIsDispatchModalOpen] = React.useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = React.useState(false);
 
   const statuses = ["All", "submitted", "confirmed", "processing", "packed", "dispatched", "delivered"];
 
@@ -485,10 +487,18 @@ export default function AdminOrdersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => alert(`Tax Invoice #${selectedOrder.orderNumber} downloaded.`)}
+                      disabled={downloadingInvoice}
+                      onClick={() => {
+                        setDownloadingInvoice(true);
+                        setTimeout(() => setDownloadingInvoice(false), 1200);
+                      }}
                       className="rounded-xl text-xs font-bold flex items-center gap-1.5 h-10 px-4"
                     >
-                      <Download className="h-3.5 w-3.5" /> PDF Tax Invoice
+                      {downloadingInvoice ? (
+                        <><RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />Generating…</>
+                      ) : (
+                        <><Download className="h-3.5 w-3.5 mr-1.5" />PDF Tax Invoice</>
+                      )}
                     </Button>
                   </div>
                 </div>
